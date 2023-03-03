@@ -37,6 +37,7 @@ class BSTNode
         BSTNode* Left = NULL;
         BSTNode* Right = NULL;
         BSTNode* Parent = NULL;
+        int Height = 0;
 
         BSTNode(int key) : Key(key) {}
 };
@@ -67,6 +68,153 @@ public:
     int Predecessor(int key);
     void Remove(int v);
 };
+
+// Balanced tree is invented by Adelson-Velskii and Landis
+// and named as AVL after them.
+class AVL : public BST
+{
+private:
+    BSTNode* root;
+
+    int GetHeight(BSTNode* node);
+    BSTNode* RotateLeft(BSTNode* node0);
+    BSTNode* RotateRight(BSTNode* node0);
+    BSTNode* Insert(BSTNode* node, int key);
+    BSTNode* Remove(BSTNode* node, int key);
+    int CalculateHeight(BSTNode* node);
+    BSTNode* RotateIfNeeded(BSTNode* insertedNode);
+public:
+    AVL() { };
+
+    void Insert(int key);
+    void Remove(int key);
+    void PrintTreeInOrder();
+};
+
+int AVL::GetHeight(BSTNode* node)
+{
+    return node == NULL ? -1 : node->Height;
+}
+
+BSTNode* AVL::RotateLeft(BSTNode* node)
+{
+    BSTNode* balancedNode = node->Right;
+    balancedNode->Parent = node->Parent;
+
+    node->Parent = balancedNode;
+
+    node->Right = balancedNode->Left;
+    
+    if (balancedNode->Left != NULL)
+        balancedNode->Left->Parent = node;
+
+    balancedNode->Left = node;
+
+    node->Height = CalculateHeight(node);
+    balancedNode->Height = CalculateHeight(balancedNode);
+    
+    return balancedNode;
+}
+BSTNode* AVL::RotateRight(BSTNode* node)
+{
+    BSTNode* balancedNode = node->Left;
+    balancedNode->Parent = node->Parent;
+
+    node->Parent = balancedNode;
+
+    node->Left = balancedNode->Right;
+
+    if (balancedNode->Right != NULL)
+        balancedNode->Right->Parent = node;
+
+    balancedNode->Right = node;
+
+    node->Height = CalculateHeight(node);
+    balancedNode->Height = CalculateHeight(balancedNode);
+    return balancedNode;
+}
+
+BSTNode* AVL::Insert(BSTNode* node, int key)
+{
+    if (node == NULL)
+        node = new BSTNode(key);
+    else if (node->Key < key)
+    {
+        node->Right = Insert(node->Right, key);
+        node->Right->Parent = node;
+    }
+    else
+    {
+        node->Left = Insert(node->Left, key);
+        node->Left->Parent = node;
+    }
+
+    return RotateIfNeeded(node);
+}
+
+BSTNode* AVL::Remove(BSTNode* node, int key)
+{
+    auto node1 = BST::Remove(node, key);
+
+    if (node1 == NULL)
+        return node1;
+
+    return RotateIfNeeded(node1);
+}
+
+BSTNode* AVL::RotateIfNeeded(BSTNode* node)
+{
+    auto leftH = GetHeight(node->Left);
+    auto rightH = GetHeight(node->Right);
+    int balance = GetHeight(node->Left) - GetHeight(node->Right);
+    // left heavy
+    if (balance == 2)
+    {
+        // Left subtree's height
+        int balance2 = GetHeight(node->Left->Left) - 
+                        GetHeight(node->Left->Right);
+
+        if (balance2 == 1)
+            node = RotateRight(node);
+        else
+        {
+            node->Left = RotateLeft(node->Left);
+            node = RotateRight(node);
+        }
+    }
+    else if (balance == -2)
+    {
+        int balance2 = GetHeight(node->Right->Left) - 
+                        GetHeight(node->Right->Right);
+
+        if (balance2 == -1)
+            node = RotateLeft(node);
+        else
+        {
+            node = RotateRight(node);
+            node = RotateLeft(node);
+        }
+    }
+
+    node->Height = CalculateHeight(node);
+
+    return node;
+}
+
+int AVL::CalculateHeight(BSTNode* node)
+{
+    return max(GetHeight(node->Left), GetHeight(node->Right)) + 1;
+}
+
+void AVL::Remove(int key)
+{
+    AVL::Remove(root, key);
+}
+
+void AVL::Insert(int key)
+{
+    root = AVL::Insert(root, key);
+}
 
 /// @brief 
 /// @param node = root node
@@ -108,6 +256,12 @@ void BST::PrintTreeInOrder(BSTNode* node)
 void BST::PrintTreeInOrder()
 {
     PrintTreeInOrder(root);
+    cout << endl;
+}
+
+void AVL::PrintTreeInOrder()
+{
+    BST::PrintTreeInOrder(root);
     cout << endl;
 }
 
@@ -256,58 +410,72 @@ void BST::Remove(int key)
 
 int main()
 {
-    BST* tree = new BST();
-    // Define key value to be inserted to BST
-    int keys[] = {23, 12, 31, 3, 15, 7, 29, 88, 53};
-    // Inserting keys
-    for(const int& key : keys)
-        tree->Insert(key);
+    // BST* tree = new BST();
+    // // Define key value to be inserted to BST
+    // int keys[] = {23, 12, 31, 3, 15, 7, 29, 88, 53};
+    // // Inserting keys
+    // for(const int& key : keys)
+    //     tree->Insert(key);
 
-    tree->PrintTreeInOrder();
+    // tree->PrintTreeInOrder();
     
-    cout << "Search key 31: ";
-    if (tree->Search(31))
-        cout << "found";
-    else
-        cout << "NOT found";
+    // cout << "Search key 31: ";
+    // if (tree->Search(31))
+    //     cout << "found";
+    // else
+    //     cout << "NOT found";
 
-    cout << endl;
+    // cout << endl;
 
-    cout << "Min. Key : " << tree->FindMin();
-    cout << endl;
-    cout << "Max. Key : " << tree->FindMax();
-    cout << endl;
+    // cout << "Min. Key : " << tree->FindMin();
+    // cout << endl;
+    // cout << "Max. Key : " << tree->FindMax();
+    // cout << endl;
 
-    // Finding successor
-    // Successor(31) should be 53
-    // Successor(15) should be 23
-    // Successor(88) should be -1 or NULL
-    cout << "Successor(31) = ";
-    cout << tree->Successor(31) << endl;
-    cout << "Successor(15) = ";
-    cout << tree->Successor(15) << endl;
-    cout << "Successor(88) = ";
-    cout << tree->Successor(88) << endl;
-    // Finding predecessor
-    // Predecessor(12) should be 7
-    // Predecessor(29) should be 23
-    // Predecessor(3) should be -1 or NULL
-    cout << "Predecessor(12) = ";
-    cout << tree->Predecessor(12) << endl;
-    cout << "Predecessor(29) = ";
-    cout << tree->Predecessor(29) << endl;
-    cout << "Predecessor(3) = ";
-    cout << tree->Predecessor(3) << endl;
+    // // Finding successor
+    // // Successor(31) should be 53
+    // // Successor(15) should be 23
+    // // Successor(88) should be -1 or NULL
+    // cout << "Successor(31) = ";
+    // cout << tree->Successor(31) << endl;
+    // cout << "Successor(15) = ";
+    // cout << tree->Successor(15) << endl;
+    // cout << "Successor(88) = ";
+    // cout << tree->Successor(88) << endl;
+    // // Finding predecessor
+    // // Predecessor(12) should be 7
+    // // Predecessor(29) should be 23
+    // // Predecessor(3) should be -1 or NULL
+    // cout << "Predecessor(12) = ";
+    // cout << tree->Predecessor(12) << endl;
+    // cout << "Predecessor(29) = ";
+    // cout << tree->Predecessor(29) << endl;
+    // cout << "Predecessor(3) = ";
+    // cout << tree->Predecessor(3) << endl;
 
-    // Removing a key
-    cout << "Removing key 15" << endl;
-    tree->Remove(15);
-    cout << "Removing key 53" << endl;
-    tree->Remove(53);
-    // Printing all keys again
-    // Key 15 and 53 should be disappeared
+    // // Removing a key
+    // cout << "Removing key 15" << endl;
+    // tree->Remove(15);
+    // cout << "Removing key 53" << endl;
+    // tree->Remove(53);
+    // // Printing all keys again
+    // // Key 15 and 53 should be disappeared
+    // cout << "Tree keys: ";
+    // tree->PrintTreeInOrder();
+    // cout << endl;
+
+    AVL* avlTree = new AVL();
+    int keys2[] = {69, 62, 46, 32, 24, 13 };
+    // Inserting keys
+    for(const int& key : keys2)
+    {
+        cout << "Inserting key " << endl;
+        avlTree->Insert(key);
+        avlTree->PrintTreeInOrder();
+    }
+
     cout << "Tree keys: ";
-    tree->PrintTreeInOrder();
+    avlTree->PrintTreeInOrder();
 
     return 0;
 }
